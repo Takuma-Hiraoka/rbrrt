@@ -1,3 +1,4 @@
+#pragma pnce
 #include <rbrrt/rbrrt.h>
 
 namespace rbrrt_sample {

@@ -8,6 +8,7 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(catkin REQUIRED COMPONENTS
   rbrrt
   choreonoid_viewer
+  reachability_map_visualizer
   roslib
   )
 
@@ -24,6 +25,7 @@ include_directories(
 add_library(CnoidRBRRTSamplePlugin SHARED
   src/CnoidRBRRTSamplePlugin.cpp
   src/view.cpp
+  src/rmap.cpp
   src/jaxon_common.cpp
   )
 target_link_libraries(CnoidRBRRTSamplePlugin
