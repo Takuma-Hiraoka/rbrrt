@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rbrrt_sample</name>
+  <version>0.0.0</version>
+  <description>The rbrrt_sample package</description>
+
+  <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
+
+  <license>BSD</license>
+
+  <author email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rbrrt</depend>
+  <depend>choreonoid</depend>
+  <depend>choreonoid_viewer</depend>
+  <depend>jvrc_models</depend>
+
+</package>

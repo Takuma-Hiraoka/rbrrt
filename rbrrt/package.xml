@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rbrrt</name>
+  <version>0.0.0</version>
+  <description>The rbrrt package</description>
+
+  <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
+
+  <license>BSD</license>
+
+  <author email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>choreonoid</depend>
+  <depend>choreonoid_viewer</depend>
+  <depend>ik_constraint2</depend>
+  <depend>prioritized_inverse_kinematics_solver2</depend>
+  <depend>trajectory_optimizer</depend>
+
+</package>
