@@ -9,6 +9,8 @@ namespace rbrrt {
   public:
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
+    cnoid::BodyPtr abstractRobot;
     std::vector<std::shared_ptr<rbrrt::Limb>> limbs;
+    double s = 1.2;
   };
 }

@@ -1,5 +1,6 @@
 #include <cnoid/Body>
 #include <cnoid/BodyLoader>
+#include <cnoid/MeshGenerator>
 #include <iostream>
 #include <ros/package.h>
 #include "jaxon_common.h"
@@ -28,6 +29,32 @@ namespace rbrrt_sample {
     }
     param->robot->calcForwardKinematics();
     param->robot->calcCenterOfMass();
+
+    param->abstractRobot = new cnoid::Body();
+    cnoid::LinkPtr rootLink = new cnoid::Link();
+    cnoid::MeshGenerator meshGenerator;
+    rootLink->setJointType(cnoid::Link::JointType::FreeJoint);
+    {
+        cnoid::SgShapePtr shape = new cnoid::SgShape();
+        cnoid::SgMeshPtr mesh = meshGenerator.generateCylinder(0.25/*radius*/, 1.1/*height*/);
+        Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
+        // 拡大
+        {
+          for (int v=0; v<mesh->vertices()->size(); v++) {
+            mesh->vertices()->at(v) *= param->s;
+          }
+        }
+        shape->setMesh(mesh);
+        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+        material->setTransparency(0.8);
+        material->setDiffuseColor(cnoid::Vector3f(1.0,0.0,0.0));
+        shape->setMaterial(material);
+        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+        posTransform->translation() = cnoid::Vector3(-0.1,0,0.3);
+        posTransform->rotation() = cnoid::AngleAxis(M_PI/2, cnoid::Vector3::UnitX()).toRotationMatrix();
+        posTransform->addChild(shape);
+        rootLink->addShapeNode(posTransform);
+      }
 
     // limbs
     {
@@ -86,6 +113,7 @@ namespace rbrrt_sample {
         param->limbs.push_back(lleg);
       }
     }
+    param->abstractRobot->setRootLink(rootLink);
 
   }
 }

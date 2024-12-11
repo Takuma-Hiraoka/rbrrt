@@ -6,6 +6,7 @@ namespace rbrrt_sample {
     generateJAXON(param);
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
     viewer->objects(param->robot);
+    viewer->objects(param->abstractRobot);
     viewer->drawObjects();
   }
 }
