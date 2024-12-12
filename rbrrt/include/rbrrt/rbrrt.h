@@ -4,7 +4,6 @@
 #include <global_inverse_kinematics_solver/global_inverse_kinematics_solver.h>
 #include <trajectory_optimizer/trajectory_optimizer.h>
 #include <rbrrt/rbrrt_state.h>
-#include <rbrrt/util.h>
 
 namespace rbrrt {
   class RBRRTParam {
@@ -13,6 +12,7 @@ namespace rbrrt {
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
     cnoid::BodyPtr abstractRobot;
+    std::vector<cnoid::LinkPtr> variables;
     std::vector<std::shared_ptr<rbrrt::Limb>> limbs;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > reachabilityConstraints;
     global_inverse_kinematics_solver::GIKParam gikRootParam;

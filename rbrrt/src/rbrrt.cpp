@@ -1,4 +1,5 @@
 #include <rbrrt/rbrrt.h>
+#include <rbrrt/util.h>
 
 namespace rbrrt {
   bool solveRBPath(const cnoid::Isometry3 goal, // rootLink

@@ -23,6 +23,8 @@ namespace rbrrt_sample {
         0.0, 0.0, // head
         0.0, 0.959931, -0.349066, -0.261799, -1.74533, -0.436332, 0.0, -0.785398,// rarm
         0.0, 0.959931, 0.349066, 0.261799, -1.74533, 0.436332, 0.0, -0.785398,// larm
+        -1.3, 1.3, // lfinger
+        -1.3, 1.3, // rfinger
         };
 
     for(int j=0; j < param->robot->numJoints(); ++j){
@@ -30,6 +32,18 @@ namespace rbrrt_sample {
     }
     param->robot->calcForwardKinematics();
     param->robot->calcCenterOfMass();
+
+    // variables
+    {
+      param->variables.push_back(param->robot->rootLink());
+      for(int i=0;i<param->robot->numJoints();i++){
+        if ((param->robot->joint(i)->name() == "RARM_F_JOINT0") ||
+            (param->robot->joint(i)->name() == "RARM_F_JOINT1") ||
+            (param->robot->joint(i)->name() == "LARM_F_JOINT0") ||
+            (param->robot->joint(i)->name() == "LARM_F_JOINT1")) continue;
+        param->variables.push_back(param->robot->joint(i));
+      }
+    }
 
     // abstractRobot
     {
@@ -179,6 +193,7 @@ namespace rbrrt_sample {
     {
       {
         std::shared_ptr<rbrrt::Limb> rarm = std::make_shared<rbrrt::Limb>();
+        rarm->name = "RARM";
         rarm->eeParentLink = param->robot->link("RARM_JOINT7");
         rarm->eeLocal.translation() = cnoid::Vector3(-0.03,0.0,-0.15);
         rarm->eeLocal.linear() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
@@ -190,10 +205,12 @@ namespace rbrrt_sample {
         rarm->joints.push_back(param->robot->link("RARM_JOINT5"));
         rarm->joints.push_back(param->robot->link("RARM_JOINT6"));
         rarm->joints.push_back(param->robot->link("RARM_JOINT7"));
+        rbrrt::readConfigurationDatabase(ros::package::getPath("rbrrt_sample") + "/config/" + rarm->name + "_configuration_database.yaml", rarm->configurationDatabase);
         param->limbs.push_back(rarm);
       }
       {
         std::shared_ptr<rbrrt::Limb> larm = std::make_shared<rbrrt::Limb>();
+        larm->name = "LARM";
         larm->eeParentLink = param->robot->link("LARM_JOINT7");
         larm->eeLocal.translation() = cnoid::Vector3(-0.03,0.0,-0.15);
         larm->eeLocal.linear() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
@@ -205,10 +222,12 @@ namespace rbrrt_sample {
         larm->joints.push_back(param->robot->link("LARM_JOINT5"));
         larm->joints.push_back(param->robot->link("LARM_JOINT6"));
         larm->joints.push_back(param->robot->link("LARM_JOINT7"));
+        rbrrt::readConfigurationDatabase(ros::package::getPath("rbrrt_sample") + "/config/" + larm->name + "_configuration_database.yaml", larm->configurationDatabase);
         param->limbs.push_back(larm);
       }
       {
         std::shared_ptr<rbrrt::Limb> rleg = std::make_shared<rbrrt::Limb>();
+        rleg->name = "RLEG";
         rleg->eeParentLink = param->robot->link("RLEG_JOINT5");
         rleg->eeLocal.translation() = cnoid::Vector3(0.0,0.0,-0.1);
         rleg->joints.push_back(param->robot->link("RLEG_JOINT0"));
@@ -217,10 +236,12 @@ namespace rbrrt_sample {
         rleg->joints.push_back(param->robot->link("RLEG_JOINT3"));
         rleg->joints.push_back(param->robot->link("RLEG_JOINT4"));
         rleg->joints.push_back(param->robot->link("RLEG_JOINT5"));
+        rbrrt::readConfigurationDatabase(ros::package::getPath("rbrrt_sample") + "/config/" + rleg->name + "_configuration_database.yaml", rleg->configurationDatabase);
         param->limbs.push_back(rleg);
       }
       {
         std::shared_ptr<rbrrt::Limb> lleg = std::make_shared<rbrrt::Limb>();
+        lleg->name = "LLEG";
         lleg->eeParentLink = param->robot->link("LLEG_JOINT5");
         lleg->eeLocal.translation() = cnoid::Vector3(0.0,0.0,-0.1);
         lleg->joints.push_back(param->robot->link("LLEG_JOINT0"));
@@ -229,6 +250,7 @@ namespace rbrrt_sample {
         lleg->joints.push_back(param->robot->link("LLEG_JOINT3"));
         lleg->joints.push_back(param->robot->link("LLEG_JOINT4"));
         lleg->joints.push_back(param->robot->link("LLEG_JOINT5"));
+        rbrrt::readConfigurationDatabase(ros::package::getPath("rbrrt_sample") + "/config/" + lleg->name + "_configuration_database.yaml", lleg->configurationDatabase);
         param->limbs.push_back(lleg);
       }
     }

@@ -1,5 +1,6 @@
 #pragma pnce
 #include <rbrrt/rbrrt.h>
+#include <rbrrt/util.h>
 #include <choreonoid_bullet/choreonoid_bullet.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
 

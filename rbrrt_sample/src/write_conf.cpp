@@ -1,8 +1,9 @@
 #include "jaxon_common.h"
 #include <cnoid/MeshGenerator>
+#include <ros/package.h>
 
 namespace rbrrt_sample {
-  void view() {
+  void write_conf() {
     std::shared_ptr<rbrrt::Environment> environment = std::make_shared<rbrrt::Environment>();
     cnoid::BodyPtr obstacle = new cnoid::Body();
     cnoid::MeshGenerator meshGenerator;
@@ -48,25 +49,14 @@ namespace rbrrt_sample {
     }
     std::shared_ptr<rbrrt::RBRRTParam> param = std::make_shared<rbrrt::RBRRTParam>();
     generateJAXON(environment, param);
-    std::vector<double> initialPose;
-    global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
     viewer->objects(obstacle);
     viewer->objects(param->robot);
     viewer->objects(param->abstractRobot);
-    int randomConfigurationViewNum = 10;
-    for (int i=0;i<randomConfigurationViewNum;i++) {
-      for (int l=0;l<param->limbs.size();l++) {
-        int index = param->limbs[l]->configurationDatabase.size() / 10 * i;
-        global_inverse_kinematics_solver::frame2Link(param->limbs[l]->configurationDatabase[index].angles,param->limbs[l]->joints);
-      }
-      param->robot->calcForwardKinematics();
-      param->robot->calcCenterOfMass();
-      cnoid::BodyPtr randomConfRobot = param->robot->clone();
-      randomConfRobot->rootLink()->p() += cnoid::Vector3((i+1)*1.0,0.0,0.0);
-      viewer->objects(randomConfRobot);
-    }
-    global_inverse_kinematics_solver::frame2Link(initialPose, param->variables);
     viewer->drawObjects();
+    rbrrt::generateConfigurationDatabase(param,10000);
+    for(int i=0;i<param->limbs.size();i++) {
+      rbrrt::writeConfigurationDatabase(ros::package::getPath("rbrrt_sample") + "/config/" + param->limbs[i]->name + "_configuration_database.yaml", param->limbs[i]->configurationDatabase);
+    }
   }
 }

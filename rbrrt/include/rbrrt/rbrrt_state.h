@@ -19,10 +19,18 @@ namespace rbrrt {
     cnoid::LinkPtr rootLink = nullptr;
     std::vector<std::shared_ptr<btConvexShape> > bulletModel;
   };
+  class ConfigurationData {
+  public:
+    double h_w;
+    cnoid::Vector3 eePos;
+    std::vector<double> angles;
+  };
   class Limb {
   public:
+    std::string name;
     cnoid::Isometry3 eeLocal = cnoid::Isometry3::Identity();
     cnoid::LinkPtr eeParentLink = nullptr;
     std::vector<cnoid::LinkPtr> joints;
+    std::vector<ConfigurationData> configurationDatabase; // rootLink座標系
   };
 }

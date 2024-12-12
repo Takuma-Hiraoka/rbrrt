@@ -21,6 +21,15 @@ namespace rbrrt_sample{
   };
   typedef cnoid::ref_ptr<rmapItem> rmapItemPtr;
 
+  void write_conf();
+  class write_confItem : public choreonoid_viewer::ViewerBaseItem {
+  public:
+    static void initializeClass(cnoid::ExtensionManager* ext){ ext->itemManager().registerClass<write_confItem>("write_confItem"); }
+  protected:
+    virtual void main() override{ write_conf(); return;}
+  };
+  typedef cnoid::ref_ptr<write_confItem> write_confItemPtr;
+
   void walk();
   class walkItem : public choreonoid_viewer::ViewerBaseItem {
   public:
@@ -41,6 +50,7 @@ namespace rbrrt_sample{
     {
       viewItem::initializeClass(this);
       rmapItem::initializeClass(this);
+      write_confItem::initializeClass(this);
       walkItem::initializeClass(this);
       return true;
     }

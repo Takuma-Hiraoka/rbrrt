@@ -28,6 +28,7 @@ add_library(CnoidRBRRTSamplePlugin SHARED
   src/CnoidRBRRTSamplePlugin.cpp
   src/view.cpp
   src/rmap.cpp
+  src/write_conf.cpp
   src/walk.cpp
   src/jaxon_common.cpp
   )
