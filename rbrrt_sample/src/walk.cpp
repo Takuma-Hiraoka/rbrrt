@@ -2,7 +2,7 @@
 #include <cnoid/MeshGenerator>
 
 namespace rbrrt_sample {
-  void view() {
+  void walk() {
     std::shared_ptr<rbrrt::Environment> environment = std::make_shared<rbrrt::Environment>();
     cnoid::BodyPtr obstacle = new cnoid::Body();
     cnoid::MeshGenerator meshGenerator;
@@ -11,12 +11,36 @@ namespace rbrrt_sample {
       {
         {
           cnoid::SgShapePtr shape = new cnoid::SgShape();
-          shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,2,0.1)));
+          shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,2.3,0.1)));
           cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
           material->setTransparency(0);
           shape->setMaterial(material);
           cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
           posTransform->translation() = cnoid::Vector3(1.0,0,-0.05);
+          posTransform->addChild(shape);
+          rootLink->addShapeNode(posTransform);
+          environment->bulletModel.push_back(choreonoid_bullet::convertToBulletModel(shape));
+        }
+        {
+          cnoid::SgShapePtr shape = new cnoid::SgShape();
+          shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,0.5,1.75)));
+          cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+          material->setTransparency(0);
+          shape->setMaterial(material);
+          cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+          posTransform->translation() = cnoid::Vector3(1,0.9,0.9);
+          posTransform->addChild(shape);
+          rootLink->addShapeNode(posTransform);
+          environment->bulletModel.push_back(choreonoid_bullet::convertToBulletModel(shape));
+        }
+        {
+          cnoid::SgShapePtr shape = new cnoid::SgShape();
+          shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,0.5,1.75)));
+          cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+          material->setTransparency(0);
+          shape->setMaterial(material);
+          cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+          posTransform->translation() = cnoid::Vector3(1,-0.9,0.9);
           posTransform->addChild(shape);
           rootLink->addShapeNode(posTransform);
           environment->bulletModel.push_back(choreonoid_bullet::convertToBulletModel(shape));

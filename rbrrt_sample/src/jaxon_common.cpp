@@ -6,12 +6,13 @@
 #include "jaxon_common.h"
 
 namespace rbrrt_sample {
-  void generateJAXON(const std::shared_ptr<rbrrt::RBRRTParam>& param
+  void generateJAXON(const std::shared_ptr<rbrrt::Environment>& environment,
+                     const std::shared_ptr<rbrrt::RBRRTParam>& param
                      ) {
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("jvrc_models") + "/JAXON_JVRC/JAXON_JVRCmain.wrl");
     if(!(param->robot)) std::cerr << "!robot" << std::endl;
-    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.0);
+    param->robot->rootLink()->p() = cnoid::Vector3(0,0,1.0);
     param->robot->rootLink()->v().setZero();
     param->robot->rootLink()->R() = cnoid::Matrix3::Identity();
     param->robot->rootLink()->w().setZero();
@@ -132,6 +133,46 @@ namespace rbrrt_sample {
         llegLink->addShapeNode(posTransform);
       }
       param->abstractRobot->setRootLink(rootLink);
+      param->abstractRobot->rootLink()->T() = param->robot->rootLink()->T();
+      param->abstractRobot->calcForwardKinematics();
+      param->abstractRobot->calcCenterOfMass();
+    }
+
+    // reachability
+    {
+      for (int i=0;i<param->abstractRobot->numLinks();i++) {
+        if (param->abstractRobot->link(i) == param->abstractRobot->rootLink()) continue;
+        std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
+        constraint->A_link() = param->abstractRobot->link(i);
+        constraint->precision() = 0.01; // rbrrtの結果が微妙に誤差があるので、0.01では小さすぎる
+        constraint->A_FACE_C().resize(1); constraint->A_FACE_dl().resize(1); constraint->A_FACE_du().resize(1);
+        choreonoid_cddlib::convertToFACEExpression(constraint->A_link()->collisionShape(),
+                                                   constraint->A_FACE_C()[0],
+                                                   constraint->A_FACE_dl()[0],
+                                                   constraint->A_FACE_du()[0]);
+        constraint->B_link() = environment->rootLink;
+        constraint->B_link_bulletModel() = constraint->B_link();
+        constraint->B_bulletModel() = environment->bulletModel;
+        constraint->useSingleMeshB() = false; // 個別にチェック
+        choreonoid_cddlib::convertToFACEExpressions(constraint->B_link()->collisionShape(),
+                                                    constraint->B_FACE_C(),
+                                                    constraint->B_FACE_dl(),
+                                                    constraint->B_FACE_du());
+        constraint->debugLevel() = 0;
+        constraint->updateBounds(); // キャッシュを内部に作る.
+        param->reachabilityConstraints.push_back(constraint);
+      }
+      // rootlink
+      {
+        std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
+        constraint->A_link() = param->abstractRobot->rootLink();
+        constraint->field() = environment->field;
+        constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ
+        constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする
+        constraint->ignoreDistance() = 0.5; // rbrttは大きく動くので、ignoreも大きくする必要がある
+        constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
+        param->reachabilityConstraints.push_back(constraint);
+      }
     }
 
     // limbs

@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   rbrrt
   choreonoid_viewer
   reachability_map_visualizer
+  choreonoid_bullet
+  choreonoid_cddlib
   roslib
   )
 
@@ -26,6 +28,7 @@ add_library(CnoidRBRRTSamplePlugin SHARED
   src/CnoidRBRRTSamplePlugin.cpp
   src/view.cpp
   src/rmap.cpp
+  src/walk.cpp
   src/jaxon_common.cpp
   )
 target_link_libraries(CnoidRBRRTSamplePlugin

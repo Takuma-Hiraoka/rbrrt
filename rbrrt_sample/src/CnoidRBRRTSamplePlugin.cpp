@@ -21,6 +21,15 @@ namespace rbrrt_sample{
   };
   typedef cnoid::ref_ptr<rmapItem> rmapItemPtr;
 
+  void walk();
+  class walkItem : public choreonoid_viewer::ViewerBaseItem {
+  public:
+    static void initializeClass(cnoid::ExtensionManager* ext){ ext->itemManager().registerClass<walkItem>("walkItem"); }
+  protected:
+    virtual void main() override{ walk(); return;}
+  };
+  typedef cnoid::ref_ptr<walkItem> walkItemPtr;
+
   class RBRRTSamplePlugin : public cnoid::Plugin
   {
   public:
@@ -32,6 +41,7 @@ namespace rbrrt_sample{
     {
       viewItem::initializeClass(this);
       rmapItem::initializeClass(this);
+      walkItem::initializeClass(this);
       return true;
     }
   };

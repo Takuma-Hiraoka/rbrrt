@@ -16,5 +16,7 @@
   <depend>choreonoid_viewer</depend>
   <depend>jvrc_models</depend>
   <depend>reachability_map_visualizer</depend>
+  <depend>choreonoid_bullet</depend>
+  <depend>choreonoid_cddlib</depend>
 
 </package>

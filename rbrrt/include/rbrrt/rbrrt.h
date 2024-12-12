@@ -12,6 +12,7 @@ namespace rbrrt {
     cnoid::BodyPtr robot;
     cnoid::BodyPtr abstractRobot;
     std::vector<std::shared_ptr<rbrrt::Limb>> limbs;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > reachabilityConstraints;
     double s = 1.2;
   };
 }
