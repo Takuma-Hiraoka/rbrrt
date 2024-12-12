@@ -14,6 +14,7 @@ namespace rbrrt {
     cnoid::BodyPtr abstractRobot;
     std::vector<cnoid::LinkPtr> variables;
     std::vector<std::shared_ptr<rbrrt::Limb>> limbs;
+    std::vector<std::shared_ptr<Contact> > currentContactPoints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > reachabilityConstraints;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
     trajectory_optimizer::TOParam toParam;
@@ -44,4 +45,8 @@ namespace rbrrt {
                    const std::shared_ptr<RBRRTParam>& param,
                    std::vector<std::vector<double> >& outputPath
                    );
+  bool solveRBLP(const std::shared_ptr<RBRRTParam>& param,
+                 const std::vector<std::vector<double> >& guidePath,
+                 std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
+                 );
 }

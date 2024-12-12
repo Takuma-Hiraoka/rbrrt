@@ -33,4 +33,15 @@ namespace rbrrt {
     std::vector<cnoid::LinkPtr> joints;
     std::vector<ConfigurationData> configurationDatabase; // rootLink座標系
   };
+  class Contact{ // PositionConstraintに入れられるように
+  public:
+    std::string name; // 接触しているリンク
+    cnoid::LinkPtr link1 = nullptr; // nullptrならworld
+    cnoid::Isometry3 localPose1 = cnoid::Isometry3::Identity();
+    cnoid::LinkPtr link2 = nullptr; // nullptrならworld
+    cnoid::Isometry3 localPose2 = cnoid::Isometry3::Identity();
+    Eigen::SparseMatrix<double,Eigen::RowMajor> C{0,6}; // localPose1 frame/origin. link1がlink2から受ける力に関する接触力制約. 列は6. C, ld, udの行数は同じ.
+    cnoid::VectorX dl;
+    cnoid::VectorX du;
+  };
 }
