@@ -77,5 +77,28 @@ namespace rbrrt_sample {
     viewer->objects(param->robot);
     viewer->objects(param->abstractRobot);
     viewer->drawObjects();
+
+    param->gikRootParam.threads = 10;
+    cnoid::Isometry3 goal = param->robot->rootLink()->T();
+    goal.translation()[0] += 0.5;
+
+    std::vector<std::vector<double> > path;
+
+    bool solved = rbrrt::solveRBPath(goal,
+                                     param,
+                                     path);
+    std::cerr << "path size : " << path.size() << std::endl;
+
+    while (true) {
+      // main loop
+      for(int i=0;i<path.size();i++){
+        global_inverse_kinematics_solver::frame2Link(path.at(i),std::vector<cnoid::LinkPtr>{param->abstractRobot->rootLink()});
+        param->abstractRobot->calcForwardKinematics(false);
+        param->abstractRobot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+    }
+
   }
 }
