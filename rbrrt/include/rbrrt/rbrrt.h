@@ -16,10 +16,17 @@ namespace rbrrt {
     std::vector<std::shared_ptr<rbrrt::Limb>> limbs;
     std::vector<std::shared_ptr<Contact> > currentContactPoints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > reachabilityConstraints;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > fullBodyConstraints;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
+    global_inverse_kinematics_solver::GIKParam gikParam;
+    prioritized_inverse_kinematics_solver2::IKParam pikParam;
     trajectory_optimizer::TOParam toParam;
-    bool OptimizeTrajectory = true; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. 
+    bool OptimizeTrajectory = true; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか.
+    bool useSwingGIK = true;
     double s = 1.2;
+    double envCollisionDefaultTolerance = 0.04; // 環境干渉回避制約. 触れる直前のリンクはこれより小さい値に変える.
+    double envCollisionDefaultPrecision = 0.03;
     RBRRTParam() {
       gikRootParam.range = 0.1; // state間の距離の最大値
       gikRootParam.delta = 0.05; // state間の距離の最小値、サンプリングしてIKを解いてこの距離より小さい変化しかない場合は探索木に追加しない。
@@ -39,6 +46,23 @@ namespace rbrrt {
       toParam.initialShortcut = true;
       toParam.shortcut = true;
       toParam.shortcutThre = gikRootParam.delta/10;
+      gikParam.delta = 0.01; // この距離内のstateは、中間のconstraintチェック無しで遷移可能. stateごとの距離がこの距離以内だとそもそも同じstateとみなされてあたらしくstateを作らない. 足を浮かせるとき等はstateが大きく変化しないので、deltaも小さくしておかないとstateが増えない.
+      gikParam.projectCellSize = 0.02;
+      gikParam.threads = 10;
+      gikParam.timeout = 2;
+      gikParam.goalBias = 0.2;
+      gikParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
+      gikParam.pikParam.wmax = 1e0; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない.
+      gikParam.pikParam.convergeThre = 5e-3;
+
+      toParam.shortcutThre=4e-2;
+      pikParam.checkFinalState=true;
+      pikParam.calcVelocity = false;
+      pikParam.debugLevel = 0;
+      pikParam.we = 1e2;
+      pikParam.wmax = 1e1;
+      pikParam.convergeThre = 5e-3;
+      pikParam.maxIteration = 100;
     }
   };
   bool solveRBPath(const cnoid::Isometry3 goal, // rootLink

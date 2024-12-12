@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   ik_constraint2
   ik_constraint2_distance_field
   ik_constraint2_bullet
+  ik_constraint2_scfr
   prioritized_inverse_kinematics_solver2
   global_inverse_kinematics_solver
   trajectory_optimizer
@@ -21,7 +22,7 @@ find_package(choreonoid REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES rbrrt
-  CATKIN_DEPENDS ik_constraint2 ik_constraint2_distance_field ik_constraint2_bullet prioritized_inverse_kinematics_solver2 global_inverse_kinematics_solver trajectory_optimizer reachability_map_visualizer choreonoid_qhull
+  CATKIN_DEPENDS ik_constraint2 ik_constraint2_distance_field ik_constraint2_bullet ik_constraint2_scfr prioritized_inverse_kinematics_solver2 global_inverse_kinematics_solver trajectory_optimizer reachability_map_visualizer choreonoid_qhull
   )
 
 include_directories(

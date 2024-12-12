@@ -89,6 +89,21 @@ namespace rbrrt {
       outputPath[i] = path->at(i);
     }
     return true;
+  }
+
+  bool solveRBLP(const std::shared_ptr<RBRRTParam>& param,
+                 const std::vector<std::vector<double> >& guidePath,
+                 std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
+                 ) {
+    // 1~4をguidePathが終わるまで繰り返す.
+    // 1. 現在の接触状態のままルートリンクをguidePathに従ってIKが解けなくなるまで動かす.
+    // 2. guidePathに従うIKが解けなければ,離れている接触を全てつける.
+    // 3. 2でもguidePathに従うIKが解けなければ,ついている接触を一つ離す.
+    // 4. 2~3をguidePathに従うIKが解けるまで繰り返す. 一定回数に達したら失敗
+    if (param->debugLevel >= 2) {
+      std::cerr << "[solveRBLP] start. guide path size : " << guidePath.size() << std::endl;
+    }
 
   }
+
 }

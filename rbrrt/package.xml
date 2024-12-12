@@ -16,6 +16,7 @@
   <depend>ik_constraint2</depend>
   <depend>ik_constraint2_distance_field</depend>
   <depend>ik_constraint2_bullet</depend>
+  <depend>ik_constraint2_scfr</depend>
   <depend>prioritized_inverse_kinematics_solver2</depend>
   <depend>global_inverse_kinematics_solver</depend>
   <depend>trajectory_optimizer</depend>

@@ -2,8 +2,228 @@
 #include <choreonoid_qhull/choreonoid_qhull.h>
 #include <cnoid/YAMLWriter>
 #include <cnoid/YAMLReader>
+#include <cnoid/MeshExtractor>
+#include <ik_constraint2_scfr/KeepCollisionScfrConstraint.h>
 
 namespace rbrrt {
+  bool searchLimbContact(const std::shared_ptr<rbrrt::RBRRTParam>& param,
+                         const std::shared_ptr<rbrrt::Limb> targetLimb,
+                         const std::shared_ptr<Contact>& nextContact) {
+    // TODO
+    return true;
+  }
+  bool solveContactIK(const std::shared_ptr<rbrrt::RBRRTParam>& param,
+                      const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                      const std::shared_ptr<Contact>& nextContact,
+                      const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,
+                      const IKState ikstate) {
+    std::vector<cnoid::LinkPtr> variables;
+    for (int i=0;i<param->variables.size(); i++) {
+      variables.push_back(param->variables[i]);
+    }
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
+    for (int i=0; i<param->fullBodyConstraints.size(); i++) {
+      if (typeid(*(param->fullBodyConstraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        bool skip=false;
+        // すでに触れているリンクは干渉回避制約に含めない
+        for (int j=0; j<stopContacts.size() && !skip;j++) {
+          if (stopContacts[j]->link1->name() == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->A_link()->name()) skip = true;
+        }
+        if (!skip && nextContact && nextContact->link1->name() == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->A_link()->name()) {
+          if ((ikstate == IKState::ATTACH) ||
+              (ikstate == IKState::DETACH)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+            // DETACH時もすでに触れているときの挙動を回避するため
+            skip = true;
+          } else {
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->tolerance() = 0.02;
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->precision() = 0.015;
+          }
+        }
+        if(skip) continue;
+      }
+      constraints0.push_back(param->fullBodyConstraints[i]);
+    }
+
+    std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
+    scfrConstraint->A_robot() = param->robot;
+    std::vector<cnoid::Isometry3> poses;
+    std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > As;
+    std::vector<cnoid::VectorX> bs;
+    std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > Cs;
+    std::vector<cnoid::VectorX> dls;
+    std::vector<cnoid::VectorX> dus;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints2;
+    for (int i=0; i<stopContacts.size(); i++) {
+      std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+      constraint->A_link() = stopContacts[i]->link1;
+      constraint->A_localpos() = stopContacts[i]->localPose1;
+      constraint->B_link() = stopContacts[i]->link2;
+      constraint->B_localpos() = stopContacts[i]->localPose2;
+      constraint->eval_link() = nullptr;
+      constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+      constraints1.push_back(constraint);
+      poses.push_back(stopContacts[i]->localPose2);
+      As.emplace_back(0,6);
+      bs.emplace_back(0);
+      Cs.push_back(stopContacts[i]->C);
+      dls.push_back(stopContacts[i]->dl);
+      dus.push_back(stopContacts[i]->du);
+      calcIgnoreBoundingBox(param->fullBodyConstraints, stopContacts[i], 3);
+    }
+    // nextContact
+    if (nextContact) {
+      std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+      constraint->A_link() = nextContact->link1;
+      constraint->A_localpos() = nextContact->localPose1;
+      constraint->B_link() = nextContact->link2;
+      constraint->B_localpos() = nextContact->localPose2;
+      if ((ikstate==IKState::DETACH) ||
+          (ikstate==IKState::SWING)) constraint->B_localpos().translation() += nextContact->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
+      if (ikstate==IKState::ATTACH) calcIgnoreBoundingBox(param->fullBodyConstraints, nextContact, 3);
+      constraint->eval_link() = nullptr;
+      constraint->eval_localR() = constraint->B_localpos().rotation();
+      constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.0;
+      constraints2.push_back(constraint);
+    }
+    if (rootConstraint) {
+      constraints2.push_back(rootConstraint);
+    }
+    scfrConstraint->poses() = poses;
+    scfrConstraint->As() = As;
+    scfrConstraint->bs() = bs;
+    scfrConstraint->Cs() = Cs;
+    scfrConstraint->dls() = dls;
+    scfrConstraint->dus() = dus;
+    constraints0.push_back(scfrConstraint);
+
+    bool solved = false;
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, param->nominals};
+    std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
+    solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
+                                                                   constraints,
+                                                                   prevTasks,
+                                                                   param->pikParam
+                                                                   );
+
+    if(!solved && param->useSwingGIK && (ikstate!=IKState::ROOT)) {
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > gikConstraints{constraints0, constraints1};
+      param->gikParam.projectLink.resize(1);
+      param->gikParam.projectLink[0] = nextContact->link1;
+      param->gikParam.projectLocalPose = nextContact->localPose1;
+      std::shared_ptr<std::vector<std::vector<double> > > path;
+      // 関節角度上下限を厳密に満たしていないと、omplのstart stateがエラーになるので
+      for(int i=0;i<param->variables.size();i++){
+        if(param->variables[i]->isRevoluteJoint() || param->variables[i]->isPrismaticJoint()) {
+          param->variables[i]->q() = std::max(std::min(param->variables[i]->q(),param->variables[i]->q_upper()),param->variables[i]->q_lower());
+        }
+      }
+      solved = global_inverse_kinematics_solver::solveGIK(variables,
+                                                          gikConstraints,
+                                                          constraints2,
+                                                          param->nominals,
+                                                          param->gikParam,
+                                                          path);
+    }
+
+    for (int i=0; i<param->fullBodyConstraints.size(); i++) {
+      if (typeid(*(param->fullBodyConstraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        std::static_pointer_cast<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>(param->fullBodyConstraints[i])->ignoreBoundingBox().clear();
+        if (nextContact && nextContact->link1->name() == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->A_link()->name()) {
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->tolerance() = param->envCollisionDefaultTolerance;
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->fullBodyConstraints[i])->precision() = param->envCollisionDefaultPrecision;
+        }
+      }
+    }
+
+    return solved;
+  }
+  void calcLevelLinks(const cnoid::LinkPtr inputLink,
+                      int level, // input
+                      std::vector<cnoid::LinkPtr>& targetLinks // output
+                      ){ // inputLinkのlevel等親のリンクをtargetLinksとして返す.
+    targetLinks.clear();
+    targetLinks.push_back(inputLink);
+    for (int iter=0; iter<level; iter++) {
+      int prevLevelSize = targetLinks.size();
+      for (int i=0; i<prevLevelSize; i++) {
+        if ((targetLinks[i]->parent() != nullptr) && (std::find(targetLinks.begin(), targetLinks.end(), targetLinks[i]->parent()) == targetLinks.end())) targetLinks.push_back(targetLinks[i]->parent());
+        cnoid::LinkPtr child = targetLinks[i]->child();
+        while (child != nullptr) {
+          if (std::find(targetLinks.begin(), targetLinks.end(), child) == targetLinks.end()) targetLinks.push_back(child);
+          child = child->sibling();
+        }
+      }
+    }
+  }
+
+  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
+                             const std::shared_ptr<Contact>& contact,
+                             int level
+                             ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
+    std::vector<cnoid::LinkPtr> targetLinks;
+    calcLevelLinks(contact->link1, level, targetLinks);
+
+    for (int i=0; i<constraints.size(); i++) {
+      if (typeid(*(constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        if (std::find(targetLinks.begin(), targetLinks.end(), std::static_pointer_cast<ik_constraint2::CollisionConstraint>(constraints[i])->A_link()) != targetLinks.end()) {
+          if (std::static_pointer_cast<ik_constraint2::CollisionConstraint>(constraints[i])->A_link() == contact->link1) continue; // この関数が呼ばれるのはsolveContactIK中で、接触リンクそのもののcollisionConstraintはそもそもconstraintに入っていない. よってcontactと一致するものはどのみちconstraintに入らないが、下と仕様をそろえるため.
+          ik_constraint2_distance_field::DistanceFieldCollisionConstraint::BoundingBox ignoreBoundingBox;
+          ignoreBoundingBox.parentLink = contact->link1;
+          ignoreBoundingBox.localPose.translation() = contact->bbx.center();
+          ignoreBoundingBox.dimensions = contact->bbx.max() - contact->bbx.min();
+          std::static_pointer_cast<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>(constraints[i])->ignoreBoundingBox().push_back(ignoreBoundingBox);
+        }
+      }
+    }
+
+  }
+
+  inline void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
+    cnoid::SgMeshPtr mesh = meshExtractor->currentMesh();
+    const cnoid::Affine3& T = meshExtractor->currentTransform();
+
+    const int vertexIndexTop = model->vertices()->size();
+
+    const cnoid::SgVertexArray& vertices = *mesh->vertices();
+    const int numVertices = vertices.size();
+    for(int i=0; i < numVertices; ++i){
+      const cnoid::Vector3 v = T * vertices[i].cast<cnoid::Affine3::Scalar>();
+      model->vertices()->push_back(v.cast<cnoid::Vector3f::Scalar>());
+    }
+
+    const int numTriangles = mesh->numTriangles();
+    for(int i=0; i < numTriangles; ++i){
+      cnoid::SgMesh::TriangleRef tri = mesh->triangle(i);
+      const int v0 = vertexIndexTop + tri[0];
+      const int v1 = vertexIndexTop + tri[1];
+      const int v2 = vertexIndexTop + tri[2];
+      model->addTriangle(v0, v1, v2);
+    }
+  }
+
+  cnoid::SgMeshPtr convertToSgMesh (const cnoid::SgNodePtr collisionshape){
+    if (!collisionshape) return nullptr;
+    std::shared_ptr<cnoid::MeshExtractor> meshExtractor = std::make_shared<cnoid::MeshExtractor>();
+    cnoid::SgMeshPtr model = new cnoid::SgMesh; model->getOrCreateVertices();
+    if(meshExtractor->extract(collisionshape, [&]() { addMesh(model,meshExtractor); })){
+    }else{
+      //      std::cerr << "[convertToSgMesh] meshExtractor->extract failed " << collisionshape->name() << std::endl;
+      return nullptr;
+    }
+    model->setName(collisionshape->name());
+
+    return model;
+  }
+
+  void Contact::calcBoundingBox() {
+    cnoid::SgMeshPtr mesh = convertToSgMesh(this->link1->collisionShape());
+    if(mesh && (mesh->numTriangles() != 0)) {
+      mesh->updateBoundingBox();
+      this->bbx = mesh->boundingBox();
+    }
+  }
+
   cnoid::SgShapePtr generateMeshFromReachabilityMap(const std::shared_ptr<reachability_map_visualizer::ReachabilityMap>& map,
                                                     double solvability_threshold) {
     std::vector<Eigen::Vector3d> vertices;
