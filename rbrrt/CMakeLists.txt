@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   ik_constraint2
   prioritized_inverse_kinematics_solver2
   trajectory_optimizer
+  reachability_map_visualizer
+  choreonoid_qhull
   )
 
 find_package(choreonoid REQUIRED)
@@ -16,7 +18,7 @@ find_package(choreonoid REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES rbrrt
-  CATKIN_DEPENDS ik_constraint2 prioritized_inverse_kinematics_solver2 trajectory_optimizer
+  CATKIN_DEPENDS ik_constraint2 prioritized_inverse_kinematics_solver2 trajectory_optimizer reachability_map_visualizer choreonoid_qhull
   )
 
 include_directories(
@@ -27,6 +29,7 @@ include_directories(
 
 add_library(${PROJECT_NAME}
   src/rbrrt.cpp
+  src/util.cpp
   )
 
 target_link_libraries(${PROJECT_NAME}

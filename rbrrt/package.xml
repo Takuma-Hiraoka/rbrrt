@@ -16,5 +16,7 @@
   <depend>ik_constraint2</depend>
   <depend>prioritized_inverse_kinematics_solver2</depend>
   <depend>trajectory_optimizer</depend>
+  <depend>reachability_map_visualizer</depend>
+  <depend>choreonoid_qhull</depend>
 
 </package>

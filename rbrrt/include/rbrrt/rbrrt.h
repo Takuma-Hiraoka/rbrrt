@@ -3,6 +3,7 @@
 #include <prioritized_inverse_kinematics_solver2/prioritized_inverse_kinematics_solver2.h>
 #include <trajectory_optimizer/trajectory_optimizer.h>
 #include <rbrrt/rbrrt_state.h>
+#include <rbrrt/util.h>
 
 namespace rbrrt {
   class RBRRTParam {

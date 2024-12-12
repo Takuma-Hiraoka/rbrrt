@@ -30,11 +30,15 @@ namespace rbrrt_sample {
     param->robot->calcForwardKinematics();
     param->robot->calcCenterOfMass();
 
-    param->abstractRobot = new cnoid::Body();
-    cnoid::LinkPtr rootLink = new cnoid::Link();
-    cnoid::MeshGenerator meshGenerator;
-    rootLink->setJointType(cnoid::Link::JointType::FreeJoint);
+    // abstractRobot
     {
+      param->abstractRobot = new cnoid::Body();
+      cnoid::LinkPtr rootLink = new cnoid::Link();
+      cnoid::MeshGenerator meshGenerator;
+      double solvability_threshold = 0.5;
+      double limb_transparency = 0.8;
+      rootLink->setJointType(cnoid::Link::JointType::FreeJoint);
+      {
         cnoid::SgShapePtr shape = new cnoid::SgShape();
         cnoid::SgMeshPtr mesh = meshGenerator.generateCylinder(0.25/*radius*/, 1.1/*height*/);
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
@@ -55,6 +59,80 @@ namespace rbrrt_sample {
         posTransform->addChild(shape);
         rootLink->addShapeNode(posTransform);
       }
+      {
+        cnoid::LinkPtr rarmLink = new cnoid::Link();
+        std::shared_ptr<reachability_map_visualizer::ReachabilityMap> rarmmap = std::make_shared<reachability_map_visualizer::ReachabilityMap>();
+        reachability_map_visualizer::readMap(ros::package::getPath("reachability_map_visualizer_sample") + "/config/jaxon_rhand.yaml", rarmmap);
+        rarmLink->setJointType(cnoid::Link::JointType::FixedJoint);
+        rarmLink->setOffsetTranslation(rarmmap->origin);
+        rarmLink->setName("RARM");
+	rootLink->appendChild(rarmLink);
+        cnoid::SgShapePtr shape = rbrrt::generateMeshFromReachabilityMap(rarmmap, solvability_threshold);
+        if(!shape) std::cerr << "cannnot create shape from reachability map" << std::endl;
+        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+        material->setTransparency(limb_transparency);
+        material->setDiffuseColor(cnoid::Vector3f(0.0,1.0,0.0));
+        shape->setMaterial(material);
+        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+        posTransform->addChild(shape);
+        rarmLink->addShapeNode(posTransform);
+      }
+      {
+        cnoid::LinkPtr larmLink = new cnoid::Link();
+        std::shared_ptr<reachability_map_visualizer::ReachabilityMap> larmmap = std::make_shared<reachability_map_visualizer::ReachabilityMap>();
+        reachability_map_visualizer::readMap(ros::package::getPath("reachability_map_visualizer_sample") + "/config/jaxon_lhand.yaml", larmmap);
+        larmLink->setJointType(cnoid::Link::JointType::FixedJoint);
+        larmLink->setOffsetTranslation(larmmap->origin);
+        larmLink->setName("LARM");
+	rootLink->appendChild(larmLink);
+        cnoid::SgShapePtr shape = rbrrt::generateMeshFromReachabilityMap(larmmap, solvability_threshold);
+        if(!shape) std::cerr << "cannnot create shape from reachability map" << std::endl;
+        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+        material->setTransparency(limb_transparency);
+        material->setDiffuseColor(cnoid::Vector3f(0.0,1.0,0.0));
+        shape->setMaterial(material);
+        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+        posTransform->addChild(shape);
+        larmLink->addShapeNode(posTransform);
+      }
+      {
+        cnoid::LinkPtr rlegLink = new cnoid::Link();
+        std::shared_ptr<reachability_map_visualizer::ReachabilityMap> rlegmap = std::make_shared<reachability_map_visualizer::ReachabilityMap>();
+        reachability_map_visualizer::readMap(ros::package::getPath("reachability_map_visualizer_sample") + "/config/jaxon_rfoot.yaml", rlegmap);
+        rlegLink->setJointType(cnoid::Link::JointType::FixedJoint);
+        rlegLink->setOffsetTranslation(rlegmap->origin);
+        rlegLink->setName("RLEG");
+	rootLink->appendChild(rlegLink);
+        cnoid::SgShapePtr shape = rbrrt::generateMeshFromReachabilityMap(rlegmap, solvability_threshold);
+        if(!shape) std::cerr << "cannnot create shape from reachability map" << std::endl;
+        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+        material->setTransparency(limb_transparency);
+        material->setDiffuseColor(cnoid::Vector3f(0.0,1.0,0.0));
+        shape->setMaterial(material);
+        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+        posTransform->addChild(shape);
+        rlegLink->addShapeNode(posTransform);
+      }
+      {
+        cnoid::LinkPtr llegLink = new cnoid::Link();
+        std::shared_ptr<reachability_map_visualizer::ReachabilityMap> llegmap = std::make_shared<reachability_map_visualizer::ReachabilityMap>();
+        reachability_map_visualizer::readMap(ros::package::getPath("reachability_map_visualizer_sample") + "/config/jaxon_lfoot.yaml", llegmap);
+        llegLink->setJointType(cnoid::Link::JointType::FixedJoint);
+        llegLink->setOffsetTranslation(llegmap->origin);
+        llegLink->setName("LLEG");
+	rootLink->appendChild(llegLink);
+        cnoid::SgShapePtr shape = rbrrt::generateMeshFromReachabilityMap(llegmap, solvability_threshold);
+        if(!shape) std::cerr << "cannnot create shape from reachability map" << std::endl;
+        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
+        material->setTransparency(limb_transparency);
+        material->setDiffuseColor(cnoid::Vector3f(0.0,1.0,0.0));
+        shape->setMaterial(material);
+        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
+        posTransform->addChild(shape);
+        llegLink->addShapeNode(posTransform);
+      }
+      param->abstractRobot->setRootLink(rootLink);
+    }
 
     // limbs
     {
@@ -113,7 +191,6 @@ namespace rbrrt_sample {
         param->limbs.push_back(lleg);
       }
     }
-    param->abstractRobot->setRootLink(rootLink);
 
   }
 }
