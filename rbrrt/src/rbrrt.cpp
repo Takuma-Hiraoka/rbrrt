@@ -141,14 +141,14 @@ namespace rbrrt {
         for (int i=0;i<param->maxTRIES;i++) {
           bool change = false;
 
-          for (int l=0;l>param->limbs.size();l++) {
+          for (int l=0;l<param->limbs.size();l++) {
             if (!(param->limbs[l]->isContact)) {
               std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > > addPath;
               bool attachSolved = searchLimbContact(param, param->limbs[l], currentContact, addPath);
               if (attachSolved) {
                 change = true;
                 param->limbs[l]->isContact = true;
-                currentContact = (*(addPath.end())).second;
+                currentContact = (addPath.back()).second;
                 path.insert(path.end(), addPath.begin(), addPath.end());
 
                 if(param->debugLevel >= 3){
@@ -179,7 +179,7 @@ namespace rbrrt {
                 std::vector<double> frame;
                 global_inverse_kinematics_solver::link2Frame(param->variables, frame);
                 path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact));
-                for (int l=0;l>param->limbs.size();l++) {
+                for (int l=0;l<param->limbs.size();l++) {
                   if (param->limbs[l]->name == nextContact->name) param->limbs[l]->isContact = false;
                 }
                 if(param->debugLevel >= 3){
@@ -200,7 +200,7 @@ namespace rbrrt {
             break;
           }
           if(!change) {
-            std::cerr << "[solveRBLP] failed. cannot attach nor detach." << std::endl;
+            std::cerr << "[solveRBLP] failed. cannot attach nor detach. current guidePathid : " << guidePathId << std::endl;
             return false;
           }
         } // maxTRIES

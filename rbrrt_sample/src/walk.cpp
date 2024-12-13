@@ -25,7 +25,7 @@ namespace rbrrt_sample {
           cnoid::SgShapePtr shape = new cnoid::SgShape();
           shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,0.5,1.75)));
           cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-          material->setTransparency(0);
+          material->setTransparency(0.8);
           shape->setMaterial(material);
           cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
           posTransform->translation() = cnoid::Vector3(1,0.9,0.9);
@@ -37,7 +37,7 @@ namespace rbrrt_sample {
           cnoid::SgShapePtr shape = new cnoid::SgShape();
           shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(4,0.5,1.75)));
           cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-          material->setTransparency(0);
+          material->setTransparency(0.8);
           shape->setMaterial(material);
           cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
           posTransform->translation() = cnoid::Vector3(1,-0.9,0.9);
@@ -87,6 +87,7 @@ namespace rbrrt_sample {
     param->pikParam.viewMilliseconds = -1;
     param->pikParam.debugLevel=0;
     param->gikRootParam.threads = 10;
+    param->gikParam.viewer = viewer;
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.5;
 

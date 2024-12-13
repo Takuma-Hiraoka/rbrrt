@@ -49,6 +49,8 @@ namespace rbrrt {
       toParam.initialShortcut = true;
       toParam.shortcut = true;
       toParam.shortcutThre = gikRootParam.delta/10;
+      gikParam = gikRootParam;
+      gikRootParam.range = 0.2; // state
       gikParam.delta = 0.01; // この距離内のstateは、中間のconstraintチェック無しで遷移可能. stateごとの距離がこの距離以内だとそもそも同じstateとみなされてあたらしくstateを作らない. 足を浮かせるとき等はstateが大きく変化しないので、deltaも小さくしておかないとstateが増えない.
       gikParam.projectCellSize = 0.02;
       gikParam.threads = 10;

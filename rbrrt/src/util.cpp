@@ -38,20 +38,23 @@ namespace rbrrt {
     nextContact->calcBoundingBox();
 
     for (int i=0;i<targetLimb->configurationDatabase.size();i++) {
+      std::cerr << "conf : " << i << std::endl;
       // configurationDataBaseはhが高い順にソートされている
       cnoid::Vector3 eeP = param->robot->rootLink()->p() + param->robot->rootLink()->R() * targetLimb->configurationDatabase[i].eePos;
       cnoid::Vector3 grad;
       bool in_bound; // Whether or not the (x,y,z) is valid for gradient purposes.
       double dist = param->environment->field->getDistanceGradient(eeP[0],eeP[1],eeP[2],grad[0],grad[1],grad[2],in_bound);
-      if (dist > 0 && // めり込んでいると干渉回避制約が難しいので0以上
+      if (in_bound &&
+          dist > 0 && // めり込んでいると干渉回避制約が難しいので0以上
           dist < param->contactCandidateDistance) {
         global_inverse_kinematics_solver::frame2Link(targetLimb->configurationDatabase[i].angles,targetLimb->joints);
         param->robot->calcForwardKinematics();
         param->robot->calcCenterOfMass();
 
         // nextContactの目標生成
-        nextContact->localPose2.translation() = eeP + grad;
-        cnoid::Vector3d z_axis = grad;
+        cnoid::Vector3 direction = grad / grad.norm();
+        nextContact->localPose2.translation() = eeP - direction*dist;
+        cnoid::Vector3d z_axis = grad / grad.norm();
         cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY() || z_axis==-cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
         cnoid::Vector3d y_axis = z_axis.cross(x_axis);
         nextContact->localPose2.linear().col(0) = x_axis.normalized(); nextContact->localPose2.linear().col(1) = y_axis.normalized(); nextContact->localPose2.linear().col(2) = z_axis.normalized();
@@ -148,7 +151,9 @@ namespace rbrrt {
       if (ikstate==IKState::ATTACH) calcIgnoreBoundingBox(param->fullBodyConstraints, nextContact, 3);
       constraint->eval_link() = nullptr;
       constraint->eval_localR() = constraint->B_localpos().rotation();
-      constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.0;
+      constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+      if (ikstate==IKState::SWING) constraint->weight()[5] = 0;
+      constraint->debugLevel() = 0;
       constraints2.push_back(constraint);
     }
     if (rootConstraint) {
@@ -178,9 +183,9 @@ namespace rbrrt {
       param->gikParam.projectLocalPose = nextContact->localPose1;
       std::shared_ptr<std::vector<std::vector<double> > > path;
       // 関節角度上下限を厳密に満たしていないと、omplのstart stateがエラーになるので
-      for(int i=0;i<param->variables.size();i++){
-        if(param->variables[i]->isRevoluteJoint() || param->variables[i]->isPrismaticJoint()) {
-          param->variables[i]->q() = std::max(std::min(param->variables[i]->q(),param->variables[i]->q_upper()),param->variables[i]->q_lower());
+      for(int i=0;i<variables.size();i++){
+        if(variables[i]->isRevoluteJoint() || variables[i]->isPrismaticJoint()) {
+          variables[i]->q() = std::max(std::min(variables[i]->q(),variables[i]->q_upper()),variables[i]->q_lower());
         }
       }
       solved = global_inverse_kinematics_solver::solveGIK(variables,
@@ -219,6 +224,7 @@ namespace rbrrt {
       }
     }
 
+    if (ikstate==IKState::SWING) nextContact->localPose2.linear() = nextContact->link1->R() * nextContact->localPose1.linear();
     if (!solved) {
       global_inverse_kinematics_solver::frame2Link(initFrame, param->variables);
       param->robot->calcForwardKinematics();
