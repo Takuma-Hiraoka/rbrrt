@@ -47,7 +47,8 @@ namespace rbrrt_sample {
       environment->field->addPointsToField(vertices);
     }
     std::shared_ptr<rbrrt::RBRRTParam> param = std::make_shared<rbrrt::RBRRTParam>();
-    generateJAXON(environment, param);
+    param->environment = environment;
+    generateJAXON(param);
     std::vector<double> initialPose;
     global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();

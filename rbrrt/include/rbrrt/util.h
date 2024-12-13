@@ -14,8 +14,10 @@ namespace rbrrt {
   // targetLimbのconfigurationDatabaseで, eePoseと外部環境との距離が一定値以下のものをhの順番で接触させられるかどうか試していく.接触させるIKが解ければtrueを返す.
   bool searchLimbContact(const std::shared_ptr<rbrrt::RBRRTParam>& param,
                          const std::shared_ptr<rbrrt::Limb> targetLimb,
-                         const std::shared_ptr<Contact>& nextContact);
+                         const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                         std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath /* out */);
   bool solveContactIK(const std::shared_ptr<rbrrt::RBRRTParam>& param,
+                      const std::vector<cnoid::LinkPtr> variables,
                       const std::vector<std::shared_ptr<Contact> >& stopContacts,
                       const std::shared_ptr<Contact>& nextContact,
                       const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,

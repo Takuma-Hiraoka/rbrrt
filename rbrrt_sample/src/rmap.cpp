@@ -6,7 +6,8 @@ namespace rbrrt_sample {
   void rmap(){
     std::shared_ptr<rbrrt::Environment> environment = std::make_shared<rbrrt::Environment>();
     std::shared_ptr<rbrrt::RBRRTParam> rbrrtParam = std::make_shared<rbrrt::RBRRTParam>();
-    generateJAXON(environment,rbrrtParam);
+    rbrrtParam->environment = environment;
+    generateJAXON(rbrrtParam);
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
     std::shared_ptr<reachability_map_visualizer::ReachabilityMapParam> rmapParam = std::make_shared<reachability_map_visualizer::ReachabilityMapParam>();
     rmapParam->robot = rbrrtParam->robot;

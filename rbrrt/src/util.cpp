@@ -8,19 +8,77 @@
 namespace rbrrt {
   bool searchLimbContact(const std::shared_ptr<rbrrt::RBRRTParam>& param,
                          const std::shared_ptr<rbrrt::Limb> targetLimb,
-                         const std::shared_ptr<Contact>& nextContact) {
-    // TODO
-    return true;
+                         const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                         std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath /* out */) {
+    outputPath.clear();
+    std::shared_ptr<Contact> nextContact = std::make_shared<Contact>();
+    nextContact->name = targetLimb->name;
+    nextContact->link1 = targetLimb->eeParentLink;
+    nextContact->localPose1 = targetLimb->eeLocal;
+    Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+    C.insert(0,2) = 1.0;
+    C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+    C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+    C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+    C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+    C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+    C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+    C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+    C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+    C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+    C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+    nextContact->C = C;
+    cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+    nextContact->dl = dl;
+    cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+    du[0] = 2000.0;
+    nextContact->du = du;
+    nextContact->calcBoundingBox();
+
+    for (int i=0;i<targetLimb->configurationDatabase.size();i++) {
+      // configurationDataBaseはhが高い順にソートされている
+      cnoid::Vector3 eeP = param->robot->rootLink()->p() + param->robot->rootLink()->R() * targetLimb->configurationDatabase[i].eePos;
+      cnoid::Vector3 grad;
+      bool in_bound; // Whether or not the (x,y,z) is valid for gradient purposes.
+      double dist = param->environment->field->getDistanceGradient(eeP[0],eeP[1],eeP[2],grad[0],grad[1],grad[2],in_bound);
+      if (dist > 0 && // めり込んでいると干渉回避制約が難しいので0以上
+          dist < param->contactCandidateDistance) {
+        global_inverse_kinematics_solver::frame2Link(targetLimb->configurationDatabase[i].angles,targetLimb->joints);
+        param->robot->calcForwardKinematics();
+        param->robot->calcCenterOfMass();
+
+        // nextContactの目標生成
+        nextContact->localPose2.translation() = eeP + grad;
+        cnoid::Vector3d z_axis = grad;
+        cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY() || z_axis==-cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
+        cnoid::Vector3d y_axis = z_axis.cross(x_axis);
+        nextContact->localPose2.linear().col(0) = x_axis.normalized(); nextContact->localPose2.linear().col(1) = y_axis.normalized(); nextContact->localPose2.linear().col(2) = z_axis.normalized();
+
+        if (solveContactIK(param, targetLimb->joints, stopContacts, nextContact, nullptr, IKState::SWING)) {
+          std::vector<double> frame;
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, stopContacts));
+          if (solveContactIK(param, targetLimb->joints, stopContacts, nextContact, nullptr, IKState::ATTACH)) {
+            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+            std::vector<std::shared_ptr<Contact> > nextContacts = stopContacts;
+            nextContacts.push_back(nextContact);
+            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, nextContacts));
+            return true;
+          } else {
+            // ATTACHはできなかったので他のconfigurationを試す
+            outputPath.clear();
+          }
+        }
+      }
+    }
+    return false;
   }
   bool solveContactIK(const std::shared_ptr<rbrrt::RBRRTParam>& param,
+                      const std::vector<cnoid::LinkPtr> variables,
                       const std::vector<std::shared_ptr<Contact> >& stopContacts,
                       const std::shared_ptr<Contact>& nextContact,
                       const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,
                       const IKState ikstate) {
-    std::vector<cnoid::LinkPtr> variables;
-    for (int i=0;i<param->variables.size(); i++) {
-      variables.push_back(param->variables[i]);
-    }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     for (int i=0; i<param->fullBodyConstraints.size(); i++) {
       if (typeid(*(param->fullBodyConstraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
