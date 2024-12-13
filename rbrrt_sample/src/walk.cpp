@@ -73,27 +73,52 @@ namespace rbrrt_sample {
     std::shared_ptr<rbrrt::RBRRTParam> param = std::make_shared<rbrrt::RBRRTParam>();
     param->environment = environment;
     generateJAXON(param);
+    std::vector<double> initialPose;
+    global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
     viewer->objects(obstacle);
     viewer->objects(param->robot);
     viewer->objects(param->abstractRobot);
     viewer->drawObjects();
 
+    param->debugLevel=3;
+    param->viewer = viewer;
+    param->pikParam.viewer = viewer;
+    param->pikParam.viewMilliseconds = -1;
+    param->pikParam.debugLevel=3;
     param->gikRootParam.threads = 10;
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.5;
 
     std::vector<std::vector<double> > path;
 
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<rbrrt::Contact> > > > outputPath;
+
     bool solved = rbrrt::solveRBPath(goal,
                                      param,
                                      path);
     std::cerr << "path size : " << path.size() << std::endl;
 
+    solved = rbrrt::solveRBLP(param,
+                              path,
+                              outputPath);
     while (true) {
+      global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
       // main loop
       for(int i=0;i<path.size();i++){
         global_inverse_kinematics_solver::frame2Link(path.at(i),std::vector<cnoid::LinkPtr>{param->abstractRobot->rootLink()});
+        param->abstractRobot->calcForwardKinematics(false);
+        param->abstractRobot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+      for(int i=0;i<outputPath.size();i++){
+        global_inverse_kinematics_solver::frame2Link(outputPath.at(i).first,param->variables);
+        param->robot->calcForwardKinematics(false);
+        param->robot->calcCenterOfMass();
+        param->abstractRobot->rootLink()->T() = param->robot->rootLink()->T();
         param->abstractRobot->calcForwardKinematics(false);
         param->abstractRobot->calcCenterOfMass();
         viewer->drawObjects();

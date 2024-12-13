@@ -103,7 +103,127 @@ namespace rbrrt {
     if (param->debugLevel >= 2) {
       std::cerr << "[solveRBLP] start. guide path size : " << guidePath.size() << std::endl;
     }
+    // bbxを計算
+    for (int i=0; i<param->currentContactPoints.size(); i++) {
+      param->currentContactPoints[i]->calcBoundingBox();
+    }
+    outputPath.clear();
+    std::vector<std::shared_ptr<Contact> > currentContact = param->currentContactPoints;
+    for (int guidePathId=0;guidePathId<guidePath.size();guidePathId++) {
+      // goal
+      cnoid::Isometry3 org = param->robot->rootLink()->T();
+      global_inverse_kinematics_solver::frame2Link(guidePath[guidePathId],std::vector<cnoid::LinkPtr>{param->robot->rootLink()});
+      cnoid::Isometry3 goal = param->robot->rootLink()->T();
+      param->robot->rootLink()->T() = org;
 
+      std::shared_ptr<ik_constraint2::PositionConstraint> rootConstraint = std::make_shared<ik_constraint2::PositionConstraint>();
+      rootConstraint->A_link() = param->robot->rootLink();
+      rootConstraint->B_link() = nullptr;
+      rootConstraint->B_localpos() = goal;
+      rootConstraint->eval_link() = nullptr;
+      rootConstraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+      bool rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
+      if(rootSolved) {
+        std::vector<double> frame;
+        global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+        outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact));
+        if(param->debugLevel >= 3){
+          if(param->viewer){
+            param->viewer->drawObjects();
+          }
+          std::cerr << "[solveRBLP] proceed guidePath. current index : " << guidePathId << " Press ENTER:" << std::endl;
+          getchar();
+        }
+        continue;
+      }
+      else {
+          std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > > path;
+        for (int i=0;i<param->maxTRIES;i++) {
+          bool change = false;
+
+          for (int l=0;l>param->limbs.size();l++) {
+            if (!(param->limbs[l]->isContact)) {
+              std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > > addPath;
+              bool attachSolved = searchLimbContact(param, param->limbs[l], currentContact, addPath);
+              if (attachSolved) {
+                change = true;
+                param->limbs[l]->isContact = true;
+                currentContact = (*(addPath.end())).second;
+                path.insert(path.end(), addPath.begin(), addPath.end());
+
+                if(param->debugLevel >= 3){
+                  if(param->viewer){
+                    param->viewer->drawObjects();
+                  }
+                  std::cerr << "[solveRBLP] attach contact. current guidePathid : " << guidePathId << " current itr : " << i  << " Press ENTER:" << std::endl;
+                  getchar();
+                }
+              }
+            }
+          }
+
+          rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
+
+          if (rootSolved) {
+            std::vector<double> frame;
+            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact));
+            break;
+          } else {
+            if (currentContact.size() > 1) {
+              std::shared_ptr<Contact> nextContact = currentContact[0];
+              currentContact.erase(currentContact.begin());
+              bool detachSolved = solveContactIK(param, param->variables, currentContact, nextContact, nullptr, IKState::DETACH);
+              if (detachSolved) {
+                change = true;
+                std::vector<double> frame;
+                global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+                path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact));
+                for (int l=0;l>param->limbs.size();l++) {
+                  if (param->limbs[l]->name == nextContact->name) param->limbs[l]->isContact = false;
+                }
+                if(param->debugLevel >= 3){
+                  if(param->viewer){
+                    param->viewer->drawObjects();
+                  }
+                  std::cerr << "[solveRBLP] detach contact. current guidePathid : " << guidePathId << " current itr : " << i  << " Press ENTER:" << std::endl;
+                  getchar();
+                }
+              }
+            }
+          } // rootSolved
+          rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
+          if (rootSolved) {
+            std::vector<double> frame;
+            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact));
+            break;
+          }
+          if(!change) {
+            std::cerr << "[solveRBLP] failed. cannot attach nor detach." << std::endl;
+            return false;
+          }
+        } // maxTRIES
+        if (rootSolved) {
+          outputPath.insert(outputPath.end(), path.begin(), path.end());
+          if(param->debugLevel >= 3){
+            if(param->viewer){
+              param->viewer->drawObjects();
+            }
+            std::cerr << "[solveRBLP] proceed guidePath. current index : " << guidePathId << " Press ENTER:" << std::endl;
+            getchar();
+          }
+        } else {
+          std::cerr << "[solveRBLP] failed. maxTRIES." << std::endl;
+          return false;
+        }
+      } // rootSolved
+    } // guidePathId
+
+    if (param->debugLevel >= 0) {
+      std::cerr << "[solveRBLP] succeeded." << std::endl;
+    }
+    return true;
   }
 
 }

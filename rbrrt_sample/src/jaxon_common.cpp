@@ -37,7 +37,7 @@ namespace rbrrt_sample {
       {
         {
           std::shared_ptr<rbrrt::Contact> lleg = std::make_shared<rbrrt::Contact>();
-          lleg->name = "LLEG_JOINT5";
+          lleg->name = "LLEG";
           lleg->link1 = param->robot->link("LLEG_JOINT5");
           lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
           lleg->localPose2 = lleg->link1->T() * lleg->localPose1;
@@ -63,7 +63,7 @@ namespace rbrrt_sample {
         }
         {
           std::shared_ptr<rbrrt::Contact> rleg = std::make_shared<rbrrt::Contact>();
-          rleg->name = "RLEG_JOINT5";
+          rleg->name = "RLEG";
           rleg->link1 = param->robot->link("RLEG_JOINT5");
           rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
           rleg->localPose2 = rleg->link1->T() * rleg->localPose1;
@@ -239,6 +239,7 @@ namespace rbrrt_sample {
       {
         std::shared_ptr<rbrrt::Limb> rarm = std::make_shared<rbrrt::Limb>();
         rarm->name = "RARM";
+        rarm->isContact = false;
         rarm->eeParentLink = param->robot->link("RARM_JOINT7");
         rarm->eeLocal.translation() = cnoid::Vector3(-0.03,0.0,-0.15);
         rarm->eeLocal.linear() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
@@ -256,6 +257,7 @@ namespace rbrrt_sample {
       {
         std::shared_ptr<rbrrt::Limb> larm = std::make_shared<rbrrt::Limb>();
         larm->name = "LARM";
+        larm->isContact = false;
         larm->eeParentLink = param->robot->link("LARM_JOINT7");
         larm->eeLocal.translation() = cnoid::Vector3(-0.03,0.0,-0.15);
         larm->eeLocal.linear() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
@@ -273,6 +275,7 @@ namespace rbrrt_sample {
       {
         std::shared_ptr<rbrrt::Limb> rleg = std::make_shared<rbrrt::Limb>();
         rleg->name = "RLEG";
+        rleg->isContact = true;
         rleg->eeParentLink = param->robot->link("RLEG_JOINT5");
         rleg->eeLocal.translation() = cnoid::Vector3(0.0,0.0,-0.1);
         rleg->joints.push_back(param->robot->link("RLEG_JOINT0"));
@@ -287,6 +290,7 @@ namespace rbrrt_sample {
       {
         std::shared_ptr<rbrrt::Limb> lleg = std::make_shared<rbrrt::Limb>();
         lleg->name = "LLEG";
+        lleg->isContact = true;
         lleg->eeParentLink = param->robot->link("LLEG_JOINT5");
         lleg->eeLocal.translation() = cnoid::Vector3(0.0,0.0,-0.1);
         lleg->joints.push_back(param->robot->link("LLEG_JOINT0"));

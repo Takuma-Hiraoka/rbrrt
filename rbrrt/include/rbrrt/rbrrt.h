@@ -26,6 +26,7 @@ namespace rbrrt {
     bool OptimizeTrajectory = true; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか.
     bool useSwingGIK = true;
     double s = 1.2;
+    int maxTRIES = 10; // ルートリンクを動かせなくなったときに接触の付け外しを最大何回行うか. この回数行ってもルートリンクをguidePath上で動かせなければ計画失敗.
     double contactCandidateDistance = 0.1; // 接触を追加する際に、configurationDatabaseのうちエンドエフェクタと環境との距離が0以上contactCandidataDistance以下のものを候補にする.
     double envCollisionDefaultTolerance = 0.04; // 環境干渉回避制約. 触れる直前のリンクはこれより小さい値に変える.
     double envCollisionDefaultPrecision = 0.03;

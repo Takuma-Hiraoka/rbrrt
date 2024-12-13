@@ -11,6 +11,8 @@ namespace rbrrt {
                          const std::vector<std::shared_ptr<Contact> >& stopContacts,
                          std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath /* out */) {
     outputPath.clear();
+    std::vector<double> initFrame;
+    global_inverse_kinematics_solver::link2Frame(param->variables, initFrame);
     std::shared_ptr<Contact> nextContact = std::make_shared<Contact>();
     nextContact->name = targetLimb->name;
     nextContact->link1 = targetLimb->eeParentLink;
@@ -71,6 +73,9 @@ namespace rbrrt {
         }
       }
     }
+    global_inverse_kinematics_solver::frame2Link(initFrame, param->variables);
+    param->robot->calcForwardKinematics();
+    param->robot->calcCenterOfMass();
     return false;
   }
   bool solveContactIK(const std::shared_ptr<rbrrt::RBRRTParam>& param,
@@ -79,6 +84,8 @@ namespace rbrrt {
                       const std::shared_ptr<Contact>& nextContact,
                       const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,
                       const IKState ikstate) {
+    std::vector<double> initFrame;
+    global_inverse_kinematics_solver::link2Frame(param->variables, initFrame);
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     for (int i=0; i<param->fullBodyConstraints.size(); i++) {
       if (typeid(*(param->fullBodyConstraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
@@ -194,6 +201,11 @@ namespace rbrrt {
       }
     }
 
+    if (!solved) {
+      global_inverse_kinematics_solver::frame2Link(initFrame, param->variables);
+      param->robot->calcForwardKinematics();
+      param->robot->calcCenterOfMass();
+    }
     return solved;
   }
   void calcLevelLinks(const cnoid::LinkPtr inputLink,

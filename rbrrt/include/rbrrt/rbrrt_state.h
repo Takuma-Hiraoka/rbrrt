@@ -27,7 +27,8 @@ namespace rbrrt {
   };
   class Limb {
   public:
-    std::string name;
+    std::string name; // 対応するContactのnameと一致させること
+    bool isContact = false;
     cnoid::Isometry3 eeLocal = cnoid::Isometry3::Identity();
     cnoid::LinkPtr eeParentLink = nullptr;
     std::vector<cnoid::LinkPtr> joints;
@@ -35,7 +36,7 @@ namespace rbrrt {
   };
   class Contact{ // PositionConstraintに入れられるように
   public:
-    std::string name; // 接触しているリンク
+    std::string name; // 対応するLimbのnameと一致させること
     cnoid::LinkPtr link1 = nullptr; // nullptrならworld
     cnoid::Isometry3 localPose1 = cnoid::Isometry3::Identity();
     cnoid::LinkPtr link2 = nullptr; // nullptrならworld
