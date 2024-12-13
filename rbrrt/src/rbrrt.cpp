@@ -162,7 +162,7 @@ namespace rbrrt {
             }
           }
 
-          rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
+          if (change) rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
 
           if (rootSolved) {
             std::vector<double> frame;
@@ -192,7 +192,7 @@ namespace rbrrt {
               }
             }
           } // rootSolved
-          rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
+          if (change) rootSolved = solveContactIK(param, param->variables, currentContact, nullptr, rootConstraint, IKState::ROOT);
           if (rootSolved) {
             std::vector<double> frame;
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);

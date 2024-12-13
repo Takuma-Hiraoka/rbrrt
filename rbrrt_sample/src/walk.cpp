@@ -85,7 +85,7 @@ namespace rbrrt_sample {
     param->viewer = viewer;
     param->pikParam.viewer = viewer;
     param->pikParam.viewMilliseconds = -1;
-    param->pikParam.debugLevel=3;
+    param->pikParam.debugLevel=0;
     param->gikRootParam.threads = 10;
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.5;

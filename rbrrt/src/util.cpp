@@ -163,7 +163,7 @@ namespace rbrrt {
     constraints0.push_back(scfrConstraint);
 
     bool solved = false;
-    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, param->nominals};
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2};
     std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
     solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
                                                                    constraints,
@@ -190,6 +190,24 @@ namespace rbrrt {
                                                           param->gikParam,
                                                           path);
     }
+
+    // for ( int i=0; i<constraints0.size(); i++ ) {
+    //   std::cerr << "constraints0: "<< constraints0[i]->isSatisfied() << std::endl;
+    // }
+    // for ( int i=0; i<constraints1.size(); i++ ) {
+    //   constraints1[i]->debugLevel() = 2;
+    //   constraints1[i]->updateBounds();
+    //   std::cerr << "constraints1: "<< constraints1[i]->isSatisfied() << std::endl;
+    // }
+    // for ( int i=0; i<constraints2.size(); i++ ) {
+    //   constraints2[i]->debugLevel() = 2;
+    //   constraints2[i]->updateBounds();
+    //   std::cerr << "constraints2: "<< constraints2[i]->isSatisfied() << std::endl;
+    //   constraints2[i]->debugLevel() = 0;
+    // }
+    // for ( int i=0; i<param->nominals.size(); i++ ) {
+    //   std::cerr << "nominals: "<< param->nominals[i]->isSatisfied() << std::endl;
+    // }
 
     for (int i=0; i<param->fullBodyConstraints.size(); i++) {
       if (typeid(*(param->fullBodyConstraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
