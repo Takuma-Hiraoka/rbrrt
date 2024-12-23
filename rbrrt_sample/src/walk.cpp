@@ -81,15 +81,18 @@ namespace rbrrt_sample {
     viewer->objects(param->abstractRobot);
     viewer->drawObjects();
 
-    param->debugLevel=3;
+    param->debugLevel=0;
     param->viewer = viewer;
     param->pikParam.viewer = viewer;
     param->pikParam.viewMilliseconds = -1;
     param->pikParam.debugLevel=0;
     param->gikRootParam.threads = 10;
     param->gikParam.viewer = viewer;
+    param->gikParam.threads = 10;
+    param->gikParam.pikParam.viewMilliseconds = -1;
+    param->gikParam.pikParam.debugLevel=0;
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 0.5;
+    goal.translation()[0] += 1.0;
 
     std::vector<std::vector<double> > path;
 

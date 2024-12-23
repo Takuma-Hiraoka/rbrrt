@@ -144,7 +144,7 @@ namespace rbrrt {
           for (int l=0;l<param->limbs.size();l++) {
             if (!(param->limbs[l]->isContact)) {
               std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > > addPath;
-              bool attachSolved = searchLimbContact(param, param->limbs[l], currentContact, addPath);
+              bool attachSolved = searchLimbContact(param, param->limbs[l], currentContact, rootConstraint, addPath);
               if (attachSolved) {
                 change = true;
                 param->limbs[l]->isContact = true;
@@ -173,7 +173,7 @@ namespace rbrrt {
             if (currentContact.size() > 1) {
               std::shared_ptr<Contact> nextContact = currentContact[0];
               currentContact.erase(currentContact.begin());
-              bool detachSolved = solveContactIK(param, param->variables, currentContact, nextContact, nullptr, IKState::DETACH);
+              bool detachSolved = solveContactIK(param, param->variables, currentContact, nextContact, rootConstraint, IKState::DETACH);
               if (detachSolved) {
                 change = true;
                 std::vector<double> frame;

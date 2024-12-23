@@ -15,6 +15,7 @@ namespace rbrrt {
   bool searchLimbContact(const std::shared_ptr<rbrrt::RBRRTParam>& param,
                          const std::shared_ptr<rbrrt::Limb> targetLimb,
                          const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                         const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,
                          std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath /* out */);
   bool solveContactIK(const std::shared_ptr<rbrrt::RBRRTParam>& param,
                       const std::vector<cnoid::LinkPtr> variables,

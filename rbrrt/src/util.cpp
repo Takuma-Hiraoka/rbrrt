@@ -6,9 +6,15 @@
 #include <ik_constraint2_scfr/KeepCollisionScfrConstraint.h>
 
 namespace rbrrt {
+  struct CompareConfigurationData {
+    bool operator() (const rbrrt::ConfigurationData& a, const rbrrt::ConfigurationData& b) const {
+      return a.h_w > b.h_w; // hが大きい順にソート
+    }
+  };
   bool searchLimbContact(const std::shared_ptr<rbrrt::RBRRTParam>& param,
                          const std::shared_ptr<rbrrt::Limb> targetLimb,
                          const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                         const std::shared_ptr<ik_constraint2::PositionConstraint>& rootConstraint,
                          std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath /* out */) {
     outputPath.clear();
     std::vector<double> initFrame;
@@ -37,6 +43,19 @@ namespace rbrrt {
     nextContact->du = du;
     nextContact->calcBoundingBox();
 
+    // hを更新
+    // 今のEE位置に近く、ルートリンクの進む方向に進むものをより積極的に選ぶ
+    for (int i=0;i<targetLimb->configurationDatabase.size();i++) {
+      cnoid::Vector3 rootDiff = rootConstraint->B_localpos().translation() - param->robot->rootLink()->p();
+      cnoid::Vector3 eeDiff = (param->robot->rootLink()->p() + param->robot->rootLink()->R() * targetLimb->configurationDatabase[i].eePos) - (targetLimb->eeParentLink->p() + targetLimb->eeParentLink->R() * targetLimb->eeLocal.translation());
+      if (eeDiff.norm() < 0.2) {
+        targetLimb->configurationDatabase[i].h_w = rootDiff.dot(eeDiff);
+      } else {
+        targetLimb->configurationDatabase[i].h_w = -std::abs(rootDiff.dot(eeDiff));
+      }
+    }
+    std::sort(targetLimb->configurationDatabase.begin(), targetLimb->configurationDatabase.end(), CompareConfigurationData());
+
     for (int i=0;i<targetLimb->configurationDatabase.size();i++) {
       std::cerr << "conf : " << i << std::endl;
       // configurationDataBaseはhが高い順にソートされている
@@ -56,11 +75,11 @@ namespace rbrrt {
         cnoid::Vector3d y_axis = z_axis.cross(x_axis);
         nextContact->localPose2.linear().col(0) = x_axis.normalized(); nextContact->localPose2.linear().col(1) = y_axis.normalized(); nextContact->localPose2.linear().col(2) = z_axis.normalized();
 
-        if (solveContactIK(param, targetLimb->joints, stopContacts, nextContact, nullptr, IKState::SWING)) {
+        if (solveContactIK(param, param->variables, stopContacts, nextContact, rootConstraint, IKState::SWING)) { // reachabilityMap的にはlimbの関節のみ入れるべきだが、ルートリンク含めた上で可能な限り近づけさせたほうが解きやすい
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, stopContacts));
-          if (solveContactIK(param, targetLimb->joints, stopContacts, nextContact, nullptr, IKState::ATTACH)) {
+          if (solveContactIK(param, param->variables, stopContacts, nextContact, rootConstraint, IKState::ATTACH)) {
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
             std::vector<std::shared_ptr<Contact> > nextContacts = stopContacts;
             nextContacts.push_back(nextContact);
@@ -119,6 +138,7 @@ namespace rbrrt {
     std::vector<cnoid::VectorX> dus;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints2;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints3;
     for (int i=0; i<stopContacts.size(); i++) {
       std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
       constraint->A_link() = stopContacts[i]->link1;
@@ -149,13 +169,26 @@ namespace rbrrt {
       constraint->eval_link() = nullptr;
       constraint->eval_localR() = constraint->B_localpos().rotation();
       constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
-      if (ikstate==IKState::SWING) constraint->weight()[5] = 0;
+      if (ikstate==IKState::SWING) {
+        constraint->precision() = 1e-2;
+        constraint->weight()[2] = 10;
+        constraint->weight()[3] = 10;
+        constraint->weight()[4] = 10;
+        constraint->weight()[5] = 0;
+      }
       constraint->debugLevel() = 0;
       constraints2.push_back(constraint);
     }
-    if (rootConstraint) {
+    // root
+    if (ikstate==IKState::ROOT) {
+      rootConstraint->precision() = 1e-3;
       constraints2.push_back(rootConstraint);
+    } else {
+      rootConstraint->precision() = 1e10;
+      constraints3.push_back(rootConstraint); // 全身自由度を使うため、EEを動かす時もルートリンクをできる限り近づけておく必要がある
     }
+    for (int i=0;i<param->nominals.size();i++) constraints3.push_back(param->nominals[i]);
+
     scfrConstraint->poses() = poses;
     scfrConstraint->As() = As;
     scfrConstraint->bs() = bs;
@@ -165,7 +198,7 @@ namespace rbrrt {
     constraints0.push_back(scfrConstraint);
 
     bool solved = false;
-    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2};
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, constraints3};
     std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
     solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
                                                                    constraints,
@@ -173,7 +206,7 @@ namespace rbrrt {
                                                                    param->pikParam
                                                                    );
 
-    if(!solved && param->useSwingGIK && (ikstate!=IKState::ROOT)) {
+    if(!solved && param->useSwingGIK && (ikstate!=IKState::ROOT) && (ikstate!=IKState::SWING)) { // SWING時は多くのケースがだめなのでいちいちGIKを使っていたら遅い
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > gikConstraints{constraints0, constraints1};
       param->gikParam.projectLink.resize(1);
       param->gikParam.projectLink[0] = nextContact->link1;
@@ -188,7 +221,7 @@ namespace rbrrt {
       solved = global_inverse_kinematics_solver::solveGIK(variables,
                                                           gikConstraints,
                                                           constraints2,
-                                                          param->nominals,
+                                                          constraints3,
                                                           param->gikParam,
                                                           path);
     }
@@ -344,11 +377,6 @@ namespace rbrrt {
       }
     }
   }
-  struct CompareConfigurationData {
-    bool operator() (const rbrrt::ConfigurationData& a, const rbrrt::ConfigurationData& b) const {
-      return a.h_w > b.h_w; // hが大きい順にソート
-    }
-  };
   void generateConfigurationDatabase(const std::shared_ptr<rbrrt::RBRRTParam>& param, double sample_num) {
     for (int l=0;l<param->limbs.size();l++) {
       param->limbs[l]->configurationDatabase.clear();
