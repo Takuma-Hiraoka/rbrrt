@@ -47,11 +47,8 @@ namespace rbrrt {
       if (in_bound &&
           dist > 0 && // めり込んでいると干渉回避制約が難しいので0以上
           dist < param->contactCandidateDistance) {
-        global_inverse_kinematics_solver::frame2Link(targetLimb->configurationDatabase[i].angles,targetLimb->joints);
-        param->robot->calcForwardKinematics();
-        param->robot->calcCenterOfMass();
 
-        // nextContactの目標生成
+        // nextcontactの目標生成
         cnoid::Vector3 direction = grad / grad.norm();
         nextContact->localPose2.translation() = eeP - direction*dist;
         cnoid::Vector3d z_axis = grad / grad.norm();
@@ -203,6 +200,7 @@ namespace rbrrt {
     //   constraints1[i]->debugLevel() = 2;
     //   constraints1[i]->updateBounds();
     //   std::cerr << "constraints1: "<< constraints1[i]->isSatisfied() << std::endl;
+    //   constraints1[i]->debugLevel() = 0;
     // }
     // for ( int i=0; i<constraints2.size(); i++ ) {
     //   constraints2[i]->debugLevel() = 2;

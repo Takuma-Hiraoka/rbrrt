@@ -341,8 +341,6 @@ namespace rbrrt_sample {
             (param->robot->link(i)->name() == "RARM_JOINT5") ||
             (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
             (param->robot->link(i)->name() == "RARM_JOINT6") ||
-            (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
-            (param->robot->link(i)->name() == "RARM_JOINT7") ||
             (param->robot->link(i)->name() == "LARM_F_JOINT0") ||
             (param->robot->link(i)->name() == "LARM_F_JOINT1") ||
             (param->robot->link(i)->name() == "RARM_F_JOINT0") ||
