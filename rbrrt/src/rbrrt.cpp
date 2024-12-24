@@ -114,6 +114,9 @@ namespace rbrrt {
       cnoid::Isometry3 org = param->robot->rootLink()->T();
       global_inverse_kinematics_solver::frame2Link(guidePath[guidePathId],std::vector<cnoid::LinkPtr>{param->robot->rootLink()});
       cnoid::Isometry3 goal = param->robot->rootLink()->T();
+      param->abstractRobot->rootLink()->T() = param->robot->rootLink()->T();
+      param->abstractRobot->calcForwardKinematics(false);
+      param->abstractRobot->calcCenterOfMass();
       param->robot->rootLink()->T() = org;
 
       std::shared_ptr<ik_constraint2::PositionConstraint> rootConstraint = std::make_shared<ik_constraint2::PositionConstraint>();

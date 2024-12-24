@@ -168,12 +168,9 @@ namespace rbrrt {
       if (ikstate==IKState::ATTACH) calcIgnoreBoundingBox(param->fullBodyConstraints, nextContact, 3);
       constraint->eval_link() = nullptr;
       constraint->eval_localR() = constraint->B_localpos().rotation();
-      constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+      constraint->precision() = 1e-2;
+      constraint->weight() << 1.0, 1.0, 10.0, 10.0, 10.0, 1.0;
       if (ikstate==IKState::SWING) {
-        constraint->precision() = 1e-2;
-        constraint->weight()[2] = 10;
-        constraint->weight()[3] = 10;
-        constraint->weight()[4] = 10;
         constraint->weight()[5] = 0;
       }
       constraint->debugLevel() = 0;
