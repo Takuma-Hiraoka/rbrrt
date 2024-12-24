@@ -48,7 +48,7 @@ namespace rbrrt {
     for (int i=0;i<targetLimb->configurationDatabase.size();i++) {
       cnoid::Vector3 rootDiff = rootConstraint->B_localpos().translation() - param->robot->rootLink()->p();
       cnoid::Vector3 eeDiff = (param->robot->rootLink()->p() + param->robot->rootLink()->R() * targetLimb->configurationDatabase[i].eePos) - (targetLimb->eeParentLink->p() + targetLimb->eeParentLink->R() * targetLimb->eeLocal.translation());
-      if (eeDiff.norm() < 0.2) {
+      if (eeDiff.norm() < param->contactEEDistance) {
         targetLimb->configurationDatabase[i].h_w = rootDiff.dot(eeDiff);
       } else {
         targetLimb->configurationDatabase[i].h_w = -std::abs(rootDiff.dot(eeDiff));
